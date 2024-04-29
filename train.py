@@ -187,18 +187,14 @@ def train(train_loader, val_loader, test_loader, model, optimizer, criterion,wri
 
 
 def main(args=None,writer=None):
-    """
-    train_data = Folders_dataset(path=args.root+"/train")
-    val_data = Folders_dataset(path=args.root+"/val")
-    test_data = Folders_dataset(path=args.root+"/test")
-    data = torch.utils.data.ConcatDataset((train_data, val_data, test_data))
-    """
+
     torch.manual_seed(0)
     split_ratio = 0.8
     data = Folders_dataset(path=args.root)
     train_data, val_data = torch.utils.data.random_split(data, [int(len(data)*split_ratio), len(data)-int(len(data)*split_ratio)])
-    test_data, val_data = torch.utils.data.random_split(val_data, [int(len(val_data)*0.2), len(val_data)-int(len(val_data)*0.2)])
+    test_data, val_data = torch.utils.data.random_split(val_data, [int(len(val_data)*0.5), len(val_data)-int(len(val_data)*0.5)])
     train_sampler = class_sampler(data, train_data)
+    
     #del train_data, val_data, test_data, data
     train_loader = DataLoader(train_data,
         batch_size=args.batch_size, pin_memory=True, sampler=train_sampler)
@@ -206,26 +202,7 @@ def main(args=None,writer=None):
         batch_size=args.batch_size, shuffle=True, pin_memory=True)
     test_loader = DataLoader(test_data,
         batch_size=args.batch_size, shuffle=True, pin_memory=True)
-    """
-    train_loader = DataLoader(DatasetCFP(
-        root=args.root,
-        mode='train',
-        data_file=args.train_file,
-    ),
-        batch_size=args.batch_size, shuffle=True, pin_memory=True)
-    val_loader = DataLoader(DatasetCFP(
-        root=args.root,
-        mode='val',
-        data_file=args.val_file,
-    ),
-        batch_size=args.batch_size, shuffle=True, pin_memory=True)
-    test_loader = DataLoader(DatasetCFP(
-        root=args.root,
-        mode='test',
-        data_file=args.test_file,
-    ),
-        batch_size=args.batch_size, shuffle=False, pin_memory=True)
-    """
+ 
     device = torch.device('cuda:{}'.format(args.cuda))
 
     model = net_builder(args.net_work, args.num_classes).to(device)

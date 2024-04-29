@@ -51,7 +51,7 @@ def val(val_dataloader, model, args, mode, device):
 
 def main(args=None):
     args.net_work = "ResUnNet50"
-    args.trained_model_path = './Trained/model_Test_002_Val_0.994253_0.957855_Test_0.994497_0.964960.pth.tar'
+    args.trained_model_path = './Trained/Model_Kellman/model_Test_011_Val_0.996431_0.971238_Test_0.995923_0.974201.pth.tar'
     # bulid model
     device = torch.device('cuda:{}'.format(args.cuda))
     args.device = device
@@ -65,7 +65,6 @@ def main(args=None):
     model.load_state_dict(checkpoint['state_dict'])
     print('Done!')
 
-    # TODO modify dataloader for thresholding
     torch.manual_seed(0)
     split_ratio = 0.8
     data = Folders_dataset(path=args.root)
@@ -80,14 +79,6 @@ def main(args=None):
     test_loader = DataLoader(test_data,
         batch_size=args.batch_size, shuffle=True, pin_memory=True)
 
-    """
-    test_loader = DataLoader(DatasetCFP(
-        root=args.root,
-        mode='test',
-        data_file=args.val_file,
-    ),
-        batch_size=args.batch_size, shuffle=False, pin_memory=True)
-    """
     u_list, u_label_list = val(test_loader, model, args, mode="Validation", device=device) 
 
     fpr_Pri, tpr_Pri, thresh = metrics.roc_curve(u_label_list, u_list)

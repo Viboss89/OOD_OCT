@@ -3,8 +3,9 @@ import tqdm
 from torch.utils.data import DataLoader
 from utils.config import DefaultConfig
 from models.net_builder import net_builder
-from dataprepare.dataloader import DatasetCFP
+from dataprepare.dataloader import DatasetCFP, class_sampler, Folders_dataset
 from torch.nn import functional as F
+import matplotlib.pyplot as plt
 
 import csv
 
@@ -17,8 +18,11 @@ def val(val_dataloader, model, args, Normal_average=0.0,device=None):
 
     with torch.no_grad():
         for i, img_data_list in enumerate(tbar):
+
+            plt.imshow(img_data_list[0][0].permute(2,1,0))
+            plt.show()
             Fundus_img = img_data_list[0].to(device)
-            image_files = img_data_list[2]
+            image_files = img_data_list[1]
             pred = model.forward(Fundus_img)
             evidences = [F.softplus(pred)]
 
@@ -40,8 +44,7 @@ def val(val_dataloader, model, args, Normal_average=0.0,device=None):
             for idx_bs_u in range(batch):
 
                 if u[idx_bs_u] >= Normal_average:
-                    print("")
-
+                    """
                     All_Infor.append([
                         '/'.join(image_files[idx_bs_u].split('/')[-2:]),
                         pred_con.cpu().detach().float().numpy()[idx_bs_u],
@@ -55,6 +58,11 @@ def val(val_dataloader, model, args, Normal_average=0.0,device=None):
                         "Reliable"
                     ]
                     )
+                    """
+                    All_Infor.append([str(image_files[idx_bs_u].cpu().detach().int().numpy()), str(pred_con.cpu().detach().int().numpy()[idx_bs_u]), "Unreliable"])
+
+                else: 
+                    All_Infor.append([str(image_files[idx_bs_u].cpu().detach().int().numpy()), str(pred_con.cpu().detach().int().numpy()[idx_bs_u]),"Reliable"])
 
 
     return All_Infor
@@ -64,7 +72,7 @@ def main(args=None):
 
 
     args.net_work = "ResUnNet50"
-    args.trained_model_path = './Trained/UIOS.pth.tar'
+    args.trained_model_path = './Trained/Model_Kellman/model_Test_011_Val_0.996431_0.971238_Test_0.995923_0.974201.pth.tar'
     # bulid model
     device = torch.device('cuda:{}'.format(args.cuda))
     args.device = device
@@ -80,24 +88,32 @@ def main(args=None):
     print('Done!')
 
 
-    Thres = 0.1158
+    Thres = 0.0508
     Results_Heads = ["Imagefiles", 'Prediction results','Reliability']
 
 
 
-    args.root = "./Datasets/OOD_Test"
-    csv_file = "./Datasets/Pred_test.csv"
-    test_loader = DataLoader(DatasetCFP(
-        root=args.root,
-        mode='test',
-        data_file="Datasets/{}.csv".format(csv_file),
-    ),
-        batch_size=args.batch_size, shuffle=False, pin_memory=True)
+    args.root = "../data"
+    csv_file = "./Datasets/Pred_test_standard.csv"
+
+    torch.manual_seed(0)
+    split_ratio = 0.8
+    data = Folders_dataset(path=args.root)
+    train_data, test_data = torch.utils.data.random_split(data, [int(len(data)*split_ratio), len(data)-int(len(data)*split_ratio)])
+    #test_data, val_data = torch.utils.data.random_split(val_data, [int(len(val_data)*0.2), len(val_data)-int(len(val_data)*0.2)])
+    #train_sampler = class_sampler(data, train_data)
+    #del train_data, val_data, test_data, data
+    train_loader = DataLoader(train_data,
+        batch_size=args.batch_size, pin_memory=True)
+    val_loader = DataLoader(test_data,
+        batch_size=args.batch_size, shuffle=True, pin_memory=True)
+    test_loader = DataLoader(test_data,
+        batch_size=args.batch_size, shuffle=True, pin_memory=True)
 
     Results_Contents = val(test_loader, model, args,
         Normal_average=Thres, device=device)
     with open(
-            "PredictionResults/Results.csv", 'w',
+            "Results_ood_OCTID.csv", 'a',     #modify name to generate reports with csv format
             newline='') as f:
         writer = csv.writer(f)
         writer.writerow(Results_Heads)

@@ -8,6 +8,7 @@ from torchvision.datasets import ImageFolder
 from torch import from_numpy
 import pandas as pd
 from itertools import islice
+import matplotlib.pyplot as plt
 
 class DatasetCFP(Dataset):
     def __init__(self,root,data_file,mode = 'train'):
@@ -51,6 +52,7 @@ def Folders_dataset(path, mode='train'):
             transforms= T.Compose([
                 T.Resize((448,448)),
                 T.RandomHorizontalFlip(),
+                #T.GaussianBlur(kernel_size=7,sigma=2.0),   activate to test OOD detection
                 T.ToTensor(),
                 T.Normalize(mean = [0.485,0.456,0.406],
                             std = [0.299,0.224,0.225])
@@ -64,14 +66,14 @@ def Folders_dataset(path, mode='train'):
                             std = [0.299,0.224,0.225])
             ])
     dataset = ImageFolder(path, transform=transforms)
+    print(dataset.classes)
 
     return dataset
 
 
 def class_sampler(data, train_data, k=1):
     """
-    Sampler para equilibrar dataset cuando esta desbalanceado, se puede aplicar tanto al train como al test.
-    k: valor por si se quiere oversampling (por defecto longitud total dataset)
+    Sampler to balance dataset when it is imbalanced
     """
     
     y_train_indices = train_data.indices
